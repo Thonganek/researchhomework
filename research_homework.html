@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบส่งการบ้านงานวิจัย บทที่ 1 และ 2</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-book-open-reader text-2xl mr-3"></i>
+                    <span class="font-bold text-xl">ระบบส่งงานวิจัย</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="nav-dashboard" onclick="showView('dashboard')" class="hover:bg-blue-700 px-3 py-2 rounded-md transition bg-blue-500"><i class="fa-solid fa-chart-line mr-1"></i> หน้าแรก (Dashboard)</button>
+                    <button id="nav-form" onclick="showView('form')" class="hover:bg-blue-700 px-3 py-2 rounded-md transition"><i class="fa-solid fa-paper-plane mr-1"></i> ส่งการบ้าน</button>
+                    <button id="btnLoginBtn" onclick="openLoginModal()" class="bg-gray-800 hover:bg-gray-900 px-3 py-2 rounded-md transition"><i class="fa-solid fa-user-shield mr-1"></i> ผู้ดูแลระบบ</button>
+                    <button id="btnLogoutBtn" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-md transition hidden"><i class="fa-solid fa-sign-out-alt mr-1"></i> ออกจากระบบ</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Dashboard View -->
+        <div id="view-dashboard" class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 border-l-4 border-blue-500 pl-3">Dashboard ติดตามสถานะงานวิจัย</h2>
+                <button onclick="fetchData()" class="text-blue-500 hover:text-blue-700"><i class="fa-solid fa-sync-alt mr-1"></i> รีเฟรชข้อมูล</button>
+            </div>
+            
+            <!-- Summary Section -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-blue-600 font-semibold">ส่งงานทั้งหมด</p>
+                        <p class="text-2xl font-bold text-blue-800" id="sum-total">0</p>
+                    </div>
+                    <i class="fa-solid fa-users text-3xl text-blue-300"></i>
+                </div>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-yellow-600 font-semibold">ยังไม่ตรวจ / กำลังตรวจ</p>
+                        <p class="text-2xl font-bold text-yellow-800" id="sum-pending">0</p>
+                    </div>
+                    <i class="fa-solid fa-clock text-3xl text-yellow-300"></i>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-green-600 font-semibold">ตรวจแล้ว (ผ่าน/แก้ไข)</p>
+                        <p class="text-2xl font-bold text-green-800" id="sum-checked">0</p>
+                    </div>
+                    <i class="fa-solid fa-check-circle text-3xl text-green-300"></i>
+                </div>
+            </div>
+
+            <!-- Research Types Summary -->
+            <div class="bg-gray-50 border rounded-lg p-4 mb-6">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">สัดส่วนประเภทงานวิจัย</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center" id="sum-types">
+                    <!-- Data will be populated here -->
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันเวลาที่ส่ง</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อเรื่อง</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รูปแบบงานวิจัย</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider admin-col hidden">จัดการ (Admin)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="empty-state" class="text-center py-10 hidden">
+                <i class="fa-solid fa-folder-open text-gray-300 text-5xl mb-3"></i>
+                <p class="text-gray-500">ยังไม่มีข้อมูลการส่งงาน</p>
+            </div>
+        </div>
+
+        <!-- Form View -->
+        <div id="view-form" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-2xl font-bold text-gray-800 border-l-4 border-blue-500 pl-3 mb-6">ฟอร์มส่งการบ้านงานวิจัย บทที่ 1 และ 2</h2>
+            
+            <form id="submissionForm" onsubmit="submitForm(event)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- ข้อมูลส่วนบุคคล -->
+                    <div class="col-span-1 md:col-span-2 bg-gray-50 p-4 rounded-md border">
+                        <h3 class="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">ข้อมูลส่วนบุคคล</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-สกุล *</label><input type="text" id="fname" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง *</label><input type="text" id="position" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">แผนก *</label><input type="text" id="department" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">โรงพยาบาล/สถานที่ปฏิบัติงาน *</label><input type="text" id="hospital" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร *</label><input type="tel" id="phone" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">E-mail *</label><input type="email" id="email" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Facebook / Line ID</label><input type="text" id="social" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                        </div>
+                    </div>
+
+                    <!-- ข้อมูลงานวิจัย -->
+                    <div class="col-span-1 md:col-span-2 bg-gray-50 p-4 rounded-md border">
+                        <h3 class="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">ข้อมูลงานวิจัย</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">1. ปัญหาในการวิจัย *</label><textarea id="problem" required rows="3" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></textarea></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">2. ชื่อเรื่อง *</label><input type="text" id="title" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">3. รูปแบบงานวิจัย *</label>
+                                <select id="design" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                    <option value="">-- เลือกรูปแบบ --</option>
+                                    <option value="R&D">R&D</option>
+                                    <option value="Action research">Action research</option>
+                                    <option value="Quasi-Experimental research">Quasi-Experimental research</option>
+                                    <option value="Analytical">Analytical</option>
+                                    <option value="RCT">RCT</option>
+                                </select>
+                            </div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">4. วัตถุประสงค์ *</label><textarea id="objective" required rows="3" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></textarea></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">5. ขอบเขตในการทำวิจัย *</label><textarea id="scope" required rows="2" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></textarea></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">6. หัวข้อที่รีวิว *</label><textarea id="review" required rows="2" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500"></textarea></div>
+                        </div>
+                    </div>
+
+                    <!-- ไฟล์แนบ -->
+                    <div class="col-span-1 md:col-span-2 bg-gray-50 p-4 rounded-md border">
+                        <h3 class="font-semibold text-lg mb-4 text-gray-700 border-b pb-2">ไฟล์แนบ (Word / PDF)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">แนบไฟล์ บทที่ 1 *</label>
+                                <input type="file" id="file1" accept=".doc,.docx,.pdf" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded p-1 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">แนบไฟล์ บทที่ 2 *</label>
+                                <input type="file" id="file2" accept=".doc,.docx,.pdf" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded p-1 bg-white">
+                            </div>
+                        </div>
+                        <p class="text-xs text-red-500 mt-2">* ขนาดไฟล์ไม่ควรใหญ่เกินไปเพื่อความรวดเร็วในการส่งข้อมูล</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-center mt-6">
+                    <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-300 flex items-center">
+                        <i class="fa-solid fa-paper-plane mr-2"></i> ส่งการบ้าน
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm">
+            <h3 class="text-xl font-bold mb-4 text-center">เข้าสู่ระบบสำหรับ Admin</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" id="username" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500">
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="password" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeLoginModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">ยกเลิก</button>
+                <button onclick="login()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">เข้าสู่ระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex flex-col items-center justify-center hidden">
+        <div class="loader mb-4"></div>
+        <p class="text-white font-semibold text-lg" id="loadingText">กำลังประมวลผลข้อมูล...</p>
+    </div>
+
+    <script>
+        // ==========================================
+        // ตั้งค่า URL ของ Google Apps Script ที่ Deploy ไว้ที่นี่
+        // ==========================================
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbypCsjJRHxxwPNDIntQhPcwH24dcIJmwetppjehUep9JTJpXB4OoEp6Lnq9QKv7ogw7/exec'; 
+        
+        let isAdmin = false;
+        let globalData = [];
+
+        // Initialization
+        window.onload = () => {
+            showView('dashboard');
+            fetchData();
+        };
+
+        // Navigation
+        function showView(view) {
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-form').classList.add('hidden');
+            document.getElementById('view-' + view).classList.remove('hidden');
+            
+            // Highlight active menu
+            const navDashboard = document.getElementById('nav-dashboard');
+            const navForm = document.getElementById('nav-form');
+            
+            if (navDashboard && navForm) {
+                navDashboard.classList.remove('bg-blue-500');
+                navForm.classList.remove('bg-blue-500');
+                document.getElementById('nav-' + view).classList.add('bg-blue-500');
+            }
+        }
+
+        // Login Logic
+        function openLoginModal() {
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            if (user === 'admin' && pass === '1234') {
+                isAdmin = true;
+                closeLoginModal();
+                document.getElementById('btnLoginBtn').classList.add('hidden');
+                document.getElementById('btnLogoutBtn').classList.remove('hidden');
+                
+                // Show admin columns
+                const adminCols = document.querySelectorAll('.admin-col');
+                adminCols.forEach(col => col.classList.remove('hidden'));
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'เข้าสู่ระบบสำเร็จ',
+                    text: 'ยินดีต้อนรับ Admin',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
+                renderTable(); // Re-render to show admin buttons
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เข้าสู่ระบบล้มเหลว',
+                    text: 'Username หรือ Password ไม่ถูกต้อง'
+                });
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            document.getElementById('btnLoginBtn').classList.remove('hidden');
+            document.getElementById('btnLogoutBtn').classList.add('hidden');
+            
+            // Hide admin columns
+            const adminCols = document.querySelectorAll('.admin-col');
+            adminCols.forEach(col => col.classList.add('hidden'));
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'ออกจากระบบแล้ว',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            
+            renderTable();
+        }
+
+        // File Converter to Base64
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                if(!file) { resolve(null); return; }
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({
+                    name: file.name,
+                    mimeType: file.type,
+                    base64: reader.result
+                });
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Submit Form
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            if(GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE' || GAS_URL.includes('AKfycby5t4L_z3Z53R47wJp_Q77u4T4_KjS3h4y8Y3')) {
+                 Swal.fire('ข้อผิดพลาด', 'กรุณาใส่ URL ของ Google Apps Script ก่อนใช้งาน', 'error');
+                 return;
+            }
+
+            const file1Input = document.getElementById('file1').files[0];
+            const file2Input = document.getElementById('file2').files[0];
+
+            if(file1Input.size > 5 * 1024 * 1024 || file2Input.size > 5 * 1024 * 1024) {
+                 Swal.fire('ข้อผิดพลาด', 'ขนาดไฟล์เกิน 5MB กรุณาลดขนาดไฟล์', 'warning');
+                 return;
+            }
+
+            showLoading('กำลังอัปโหลดไฟล์และบันทึกข้อมูล...<br>กรุณารอสักครู่ (อาจใช้เวลา 1-2 นาที)');
+
+            try {
+                const file1Data = await getBase64(file1Input);
+                const file2Data = await getBase64(file2Input);
+
+                const payload = {
+                    action: 'submit',
+                    name: document.getElementById('fname').value,
+                    position: document.getElementById('position').value,
+                    department: document.getElementById('department').value,
+                    hospital: document.getElementById('hospital').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value,
+                    social: document.getElementById('social').value,
+                    problem: document.getElementById('problem').value,
+                    title: document.getElementById('title').value,
+                    design: document.getElementById('design').value,
+                    objective: document.getElementById('objective').value,
+                    scope: document.getElementById('scope').value,
+                    review: document.getElementById('review').value,
+                    file1: file1Data,
+                    file2: file2Data
+                };
+
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    document.getElementById('submissionForm').reset();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งการบ้านเรียบร้อย!',
+                        text: 'ข้อมูลและไฟล์ถูกส่งเข้าสู่ระบบแล้ว'
+                    });
+                    showView('dashboard');
+                    fetchData(); // Refresh table
+                } else {
+                    throw new Error(result.message);
+                }
+
+            } catch (error) {
+                console.error(error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถส่งข้อมูลได้: ' + error.message
+                });
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Fetch Data for Dashboard
+        async function fetchData() {
+            if(!GAS_URL || GAS_URL === '') return;
+            
+            showLoading('กำลังดึงข้อมูล...');
+            try {
+                const response = await fetch(GAS_URL);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    globalData = result.data.reverse(); // Show newest first
+                    updateSummary();
+                    renderTable();
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Update Summary Data
+        function updateSummary() {
+            const total = globalData.length;
+            let pending = 0;
+            let checked = 0;
+            let types = {
+                'R&D': 0,
+                'Action research': 0,
+                'Quasi-Experimental research': 0,
+                'Analytical': 0,
+                'RCT': 0
+            };
+
+            globalData.forEach(item => {
+                // นับสถานะ
+                if (item.status === 'รอการตรวจ' || item.status === 'กำลังตรวจ') {
+                    pending++;
+                } else {
+                    checked++;
+                }
+
+                // นับประเภทงานวิจัย
+                if (types[item.design] !== undefined) {
+                    types[item.design]++;
+                }
+            });
+
+            document.getElementById('sum-total').innerText = total + ' คน';
+            document.getElementById('sum-pending').innerText = pending + ' คน';
+            document.getElementById('sum-checked').innerText = checked + ' คน';
+
+            const typesContainer = document.getElementById('sum-types');
+            let typesHtml = '';
+            for (const [type, count] of Object.entries(types)) {
+                typesHtml += `
+                    <div class="bg-white p-2 rounded shadow-sm border text-sm flex flex-col justify-center">
+                        <div class="text-gray-500 text-xs mb-1 truncate" title="${type}">${type}</div>
+                        <div class="font-bold text-blue-600 text-lg">${count}</div>
+                    </div>
+                `;
+            }
+            typesContainer.innerHTML = typesHtml;
+        }
+
+        // Render Table
+        function renderTable() {
+            const tbody = document.getElementById('dashboard-table-body');
+            tbody.innerHTML = '';
+
+            if (globalData.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+            } else {
+                document.getElementById('empty-state').classList.add('hidden');
+                
+                globalData.forEach((row) => {
+                    const date = new Date(row.timestamp).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+                    
+                    let statusColor = 'bg-yellow-100 text-yellow-800';
+                    if(row.status === 'ผ่าน') statusColor = 'bg-green-100 text-green-800';
+                    if(row.status === 'ต้องแก้ไข') statusColor = 'bg-red-100 text-red-800';
+
+                    const adminHtml = isAdmin ? `
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium admin-col">
+                            <button onclick="viewDetails('${row.id}')" class="text-blue-600 hover:text-blue-900 mr-2" title="ดูข้อมูล/ไฟล์"><i class="fa-solid fa-eye"></i></button>
+                            <button onclick="changeStatus('${row.id}')" class="text-green-600 hover:text-green-900 mr-2" title="เปลี่ยนสถานะ"><i class="fa-solid fa-check-circle"></i></button>
+                            <button onclick="deleteRecord('${row.id}')" class="text-red-600 hover:text-red-900" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    ` : `<td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium admin-col hidden"></td>`;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title="${row.title}">${row.title}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.design}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                                ${row.status}
+                            </span>
+                        </td>
+                        ${adminHtml}
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // Admin Actions
+        async function deleteRecord(id) {
+            Swal.fire({
+                title: 'ยืนยันการลบ?',
+                text: "ข้อมูลนี้จะถูกลบออกจากระบบและไม่สามารถกู้คืนได้!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    showLoading('กำลังลบข้อมูล...');
+                    try {
+                        const response = await fetch(GAS_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'delete', id: id })
+                        });
+                        const res = await response.json();
+                        if(res.status === 'success') {
+                            Swal.fire('ลบสำเร็จ!', 'ข้อมูลถูกลบแล้ว', 'success');
+                            fetchData();
+                        }
+                    } catch (error) {
+                        Swal.fire('ผิดพลาด', 'ไม่สามารถลบข้อมูลได้', 'error');
+                    } finally {
+                        hideLoading();
+                    }
+                }
+            });
+        }
+
+        async function changeStatus(id) {
+            const data = globalData.find(item => item.id == id);
+            if(!data) return;
+
+            const { value: formValues } = await Swal.fire({
+                title: 'อัปเดตสถานะและคำแนะนำ',
+                html: `
+                    <div class="text-left mb-2 text-sm font-semibold text-gray-700 mt-2">สถานะการตรวจ:</div>
+                    <select id="swal-status" class="w-full border-gray-300 rounded-md shadow-sm p-2 border mb-4 focus:border-blue-500">
+                        <option value="รอการตรวจ" ${data.status === 'รอการตรวจ' ? 'selected' : ''}>รอการตรวจ</option>
+                        <option value="กำลังตรวจ" ${data.status === 'กำลังตรวจ' ? 'selected' : ''}>กำลังตรวจ</option>
+                        <option value="ต้องแก้ไข" ${data.status === 'ต้องแก้ไข' ? 'selected' : ''}>ต้องแก้ไข</option>
+                        <option value="ผ่าน" ${data.status === 'ผ่าน' ? 'selected' : ''}>ผ่าน</option>
+                    </select>
+                    <div class="text-left mb-2 text-sm font-semibold text-gray-700">คำแนะนำในการแก้ไข (ส่งเข้า Email นักศึกษา):</div>
+                    <textarea id="swal-feedback" rows="4" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:border-blue-500" placeholder="พิมพ์คำแนะนำในการแก้ไขที่นี่ (ถ้ามี)...">${data.feedback || ''}</textarea>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึกและส่งอีเมล',
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    return {
+                        status: document.getElementById('swal-status').value,
+                        feedback: document.getElementById('swal-feedback').value
+                    }
+                }
+            });
+
+            if (formValues) {
+                showLoading('กำลังอัปเดตและส่งอีเมลแจ้งนักศึกษา...');
+                try {
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            action: 'updateStatus', 
+                            id: id, 
+                            status: formValues.status,
+                            feedback: formValues.feedback
+                        })
+                    });
+                    const res = await response.json();
+                    if(res.status === 'success') {
+                        Swal.fire('บันทึกสำเร็จ!', 'อัปเดตสถานะและส่งอีเมลแจ้งนักศึกษาแล้ว', 'success');
+                        fetchData();
+                    } else {
+                        throw new Error(res.message);
+                    }
+                } catch (error) {
+                    Swal.fire('ผิดพลาด', 'ไม่สามารถอัปเดตได้', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+        function viewDetails(id) {
+            const data = globalData.find(item => item.id == id);
+            if(!data) return;
+
+            const html = `
+                <div class="text-left text-sm space-y-2 max-h-[60vh] overflow-y-auto p-2 border rounded">
+                    <p><strong>ชื่อ-สกุล:</strong> ${data.name}</p>
+                    <p><strong>สถานที่:</strong> ${data.hospital}</p>
+                    <p><strong>ติดต่อ:</strong> โทร: ${data.phone} | Email: ${data.email} | โซเชียล: ${data.social}</p>
+                    <hr>
+                    <p><strong>ปัญหา:</strong> ${data.problem}</p>
+                    <p><strong>ชื่อเรื่อง:</strong> ${data.title}</p>
+                    <p><strong>รูปแบบ:</strong> ${data.design}</p>
+                    <p><strong>วัตถุประสงค์:</strong> ${data.objective}</p>
+                    <p><strong>ขอบเขต:</strong> ${data.scope}</p>
+                    <p><strong>รีวิว:</strong> ${data.review}</p>
+                    ${data.feedback ? `<hr><div class="bg-red-50 p-3 rounded-md border border-red-200"><p class="text-red-700 font-semibold mb-1"><i class="fa-solid fa-comment-dots"></i> คำแนะนำจากผู้ตรวจ:</p><p class="text-red-600">${data.feedback.replace(/\n/g, '<br>')}</p></div>` : ''}
+                    <hr>
+                    <p><strong>ไฟล์แนบ:</strong></p>
+                    <a href="${data.file1}" target="_blank" class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200"><i class="fa-solid fa-file-word"></i> บทที่ 1</a>
+                    <a href="${data.file2}" target="_blank" class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 mt-1"><i class="fa-solid fa-file-word"></i> บทที่ 2</a>
+                </div>
+            `;
+
+            Swal.fire({
+                title: 'รายละเอียดข้อมูล',
+                html: html,
+                width: 600,
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+        }
+
+        // Loading Utils
+        function showLoading(text) {
+            document.getElementById('loadingText').innerHTML = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
